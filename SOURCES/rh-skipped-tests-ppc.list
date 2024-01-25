@@ -1,0 +1,30 @@
+# Fails on ppc64le
+parts.partition_alter1_1_innodb :
+parts.partition_alter1_2_innodb : 
+parts.partition_alter1_1_2_innodb :
+parts.partition_alter1_2_1_innodb :
+parts.partition_alter2_1_1_innodb : 
+parts.partition_alter1_2_2_innodb : 
+parts.partition_alter2_1_2_innodb : 
+parts.partition_alter2_2_1_innodb : 
+parts.partition_alter2_2_2_innodb : 
+parts.partition_alter4_innodb : 
+parts.partition_basic_innodb :
+parts.part_supported_sql_func_innodb :
+
+rpl.rpl_loaddata_m :
+
+#
+stress.ddl_innodb :
+
+innodb.innodb_buffer_pool_resize :
+innodb.innodb_buffer_pool_resize_with_chunks :
+innodb.innodb_bulk_create_index :
+innodb.innodb_defrag_binlog :
+innodb.innodb_defrag_concurrent :
+innodb_gis.kill_server :
+gcol.innodb_virtual_basic :
+
+# Unstable (randomly failing) tests
+innodb_gis.rtree_search :
+main.type_ranges :

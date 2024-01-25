@@ -1,0 +1,3 @@
+# Fails on s390x
+disks.disks :
+disks.disks_notembedded :

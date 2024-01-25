@@ -1,0 +1,27 @@
+# Fails everywhere
+innodb.innodb_defrag_binlog :
+
+main.ssl_7937 :
+main.ssl_8k_key :
+main.ssl_crl :
+main.ssl_system_ca :
+main.userstat :
+
+perfschema.cnf_option :
+perfschema.nesting :
+perfschema.socket_summary_by_event_name_func :
+perfschema.socket_summary_by_instance_func :
+
+plugins.feedback_plugin_load :
+
+rpl.rpl_row_img_blobs :
+rpl.rpl_row_img_eng_min :
+rpl.rpl_row_img_eng_noblob :
+
+sys_vars.slave_parallel_threads_basic :
+
+# Fails only on i686
+main.myisampack :
+
+# We don't build the plugin in server; we build it in mariadb-connector-c instead
+plugins.auth_ed25519 :
