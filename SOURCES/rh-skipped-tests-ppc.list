@@ -1,0 +1,22 @@
+# Fails on ppc64le since 10.4.12
+oqgraph.social : 
+
+# Fails since 10.5.13
+encryption.create_or_replace_big : 
+rpl.rpl_parallel_optimistic_xa_lsu_off : 
+rpl.rpl_parallel_optimistic_xa : 
+innodb.innodb_defrag_concurrent : 
+rpl.rpl_parallel_xa_same_xid : 
+parts.part_supported_sql_func_innodb : 
+parts.partition_alter2_1_1_innodb : 
+
+# Fails since 10.5.20
+innodb.innodb_defrag_concurrent        :
+parts.partition_alter4_innodb          :
+rpl.rpl_parallel_optimistic_xa_lsu_off :
+
+# Fails since 10.5.22
+parts.partition_alter2_1_2_innodb      :
+innodb_gis.kill_server                 :
+parts.partition_alter2_2_1_innodb      :
+parts.partition_alter2_2_2_innodb      :

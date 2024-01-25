@@ -1,0 +1,7 @@
+# Fails since 10.5.2
+perfschema.memory_aggregate_32bit :
+period.overlaps :
+# Fails since 10.5.9
+bugfix.wait_timeout :
+#Fails since 10.5.16
+innodb.row_size_error_log_warnings_3 :
