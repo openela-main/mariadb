@@ -1,0 +1,5 @@
+# Fails on 10.11.6
+main.func_json_notembedded :
+mariabackup.huge_lsn :
+mariabackup.xb_file_key_management :
+main.column_compression_parts :
