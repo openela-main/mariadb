@@ -3,3 +3,10 @@ main.func_json_notembedded :
 mariabackup.huge_lsn :
 mariabackup.xb_file_key_management :
 main.column_compression_parts :
+
+# Fails on 10.11.9
+main.having_cond_pushdown :
+mariabackup.slave_provision_nolock :
+mariabackup.page_compression_level :
+mariabackup.xb_page_compress :
+innodb.101_compatibility :

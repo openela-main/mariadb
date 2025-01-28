@@ -83,3 +83,15 @@ rpl.rpl_upgrade_master_info                  :
 
 # Unstable on 10.11.6
 rpl.rpl_slave_shutdown_mdev20821             :
+
+# Fails on 10.11.9
+main.mdev375                                 :
+perfschema.show_aggregate                    :
+
+# Unstable on 10.11.9
+innodb.log_file_size_online                  :
+
+# Fails on all architectures since  10.11.10
+main.connect                                 :
+main.timezone                                :
+innodb.log_file_name                         :

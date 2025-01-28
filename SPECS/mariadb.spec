@@ -18,7 +18,7 @@ ExcludeArch: %{ix86}
 # The last version on which the full testsuite has been run
 # In case of further rebuilds of that version, don't require full testsuite to be run
 # run only "main" suite
-%global last_tested_version 10.11.6
+%global last_tested_version 10.11.10
 # Set to 1 to force run the testsuite even if it was already tested in current version
 %global force_run_testsuite 0
 
@@ -112,7 +112,14 @@ ExcludeArch: %{ix86}
 %bcond_without unbundled_pcre
 %else
 %bcond_with unbundled_pcre
-%global pcre_bundled_version 10.42
+%global pcre_bundled_version 10.44
+%endif
+
+# To avoid issues with a breaking change in FMT library, bundle it on systems where FMT wasn't fixed yet
+# See mariadb-libfmt.patch for detailed description.
+%bcond_without bundled_fmt
+%if %{with bundled_fmt}
+%global fmt_bundled_version 11.0.2
 %endif
 
 # Use main python interpretter version
@@ -150,7 +157,7 @@ ExcludeArch: %{ix86}
 %global sameevr   %{epoch}:%{version}-%{release}
 
 Name:             mariadb
-Version:          10.11.6
+Version:          10.11.10
 Release:          1%{?with_debug:.debug}%{?dist}
 Epoch:            3
 
@@ -160,7 +167,9 @@ URL:              http://mariadb.org
 License:          GPLv2 with exceptions and LGPLv2 and BSD
 
 Source0:          https://downloads.mariadb.org/interstitial/mariadb-%{version}/source/mariadb-%{version}.tar.gz
-Source1:          https://github.com/fmtlib/fmt/archive/refs/tags/8.0.1.zip
+%if %{with bundled_fmt}
+Source1:          https://github.com/fmtlib/fmt/releases/download/%{fmt_bundled_version}/fmt-%{fmt_bundled_version}.zip
+%endif
 Source2:          mysql_config_multilib.sh
 Source3:          my.cnf.in
 Source6:          README.mysql-docs
@@ -218,7 +227,10 @@ Patch16:          %{pkgnamepatch}-auth_pam_tool_dir.patch
 #   Patch17: Revert of an upstream commit
 Patch17:          upstream_5cc2096f93b7f130b36f8bc0fc43440db9a848e4.patch
 
-Patch11:          %{pkgnamepatch}-fmt_bundle.patch
+#   Patch13: bundle the FMT library
+Patch13:          %{pkgnamepatch}-libfmt.patch
+#   Patch14: make MTR port calculation reasonably predictable
+Patch14:          %{pkgnamepatch}-mtr.patch
 
 BuildRequires:    cmake gcc-c++
 BuildRequires:    multilib-rpm-config
@@ -238,7 +250,8 @@ BuildRequires:    ncurses-devel
 # debugging stuff
 BuildRequires:    systemtap-sdt-devel
 # Bison SQL parser; needed also for wsrep API
-BuildRequires:    bison bison-devel
+BuildRequires:    bison >= 2.4
+BuildRequires:    bison-devel >= 2.4
 
 %{?with_debug:BuildRequires:    valgrind-devel}
 
@@ -448,6 +461,8 @@ Recommends:       %{name}-backup%{?_isa} = %{sameevr}
 %{?with_connect:Suggests:      %{name}-connect-engine%{?_isa} = %{sameevr}}
 %{?with_pam:Suggests:          %{name}-pam%{?_isa} = %{sameevr}}
 
+%{?with_bundled_fmt:Provides: bundled(fmt) = %{fmt_bundled_version}}
+
 Suggests:         mytop
 Suggests:         logrotate
 
@@ -457,7 +472,7 @@ Requires:         %{_sysconfdir}/my.cnf.d
 # Aditional SELinux rules (common for MariaDB & MySQL) shipped in a separate package
 # For cases, where we want to fix a SELinux issues in MariaDB sooner than patched selinux-policy-targeted package is released
 %if %require_mysql_selinux
-Requires:         (mysql-selinux if selinux-policy-targeted)
+Requires:         (mysql-selinux >= 1.0.10 if selinux-policy-targeted)
 %endif
 
 # for fuser in mysql-check-socket
@@ -499,7 +514,8 @@ MariaDB is a community developed branch of MySQL.
 Summary:          The Open Query GRAPH engine for MariaDB
 Requires:         %{name}-server%{?_isa} = %{sameevr}
 # boost and Judy required for oograph
-BuildRequires:    boost-devel Judy-devel
+BuildRequires:    boost-devel >= 1.40.0
+BuildRequires:    Judy-devel
 
 %description      oqgraph-engine
 The package provides Open Query GRAPH engine (OQGRAPH) as plugin for MariaDB
@@ -722,6 +738,20 @@ sources.
 %prep
 %setup -q -n %{pkg_name}-%{version}
 
+# Remove bundled code that is unused (all cases in which we use the system version of the library instead)
+# as required by https://docs.fedoraproject.org/en-US/packaging-guidelines/#bundling
+rm -r zlib libmariadb/external/zlib
+rm -r win libmariadb/win
+rm -r extra/wolfssl
+rm -r storage/columnstore
+rm -r debian
+
+%if %{with bundled_fmt}
+echo %{_vpath_builddir}
+mkdir -p  %{_vpath_builddir}/extra/libfmt/
+cp %{SOURCE1}  %{_vpath_builddir}/extra/libfmt/
+%endif
+
 # Remove JAR files that upstream puts into tarball
 find . -name "*.jar" -type f -exec rm --verbose -f {} \;
 # Remove testsuite for the mariadb-connector-c
@@ -734,7 +764,10 @@ rm -r storage/rocksdb/
 %patch4 -p1
 %patch7 -p1
 %patch9 -p1
-%patch11 -p1
+%if %{with bundled_fmt}
+%patch -P13 -p1
+%endif
+%patch -P14 -p1
 # The test in Patch 10 has been recently updated by upstream
 # and the test was disabled in the testuite run
 #   main.ssl_cipher     [ disabled ]  MDEV-17184 - Failures with OpenSSL 1.1.1
@@ -1192,14 +1225,6 @@ rm %{buildroot}%{_mandir}/man1/mbstream.1*
 %check
 %if %{with test}
 %if %runselftest
-# hack to let 32- and 64-bit tests run concurrently on same build machine
-export MTR_PARALLEL=1
-# Builds might happen at the same host, avoid collision
-#   The port used is calculated as 20 * MTR_BUILD_THREAD + 10000
-#   The resulting port must be between 5000 and 32767
-#   This is the same as using option "--build-thread" for the "mysql-test-run.pl"
-export MTR_BUILD_THREAD=$(( $(date +%s) % 1100 ))
-
 # The cmake build scripts don't provide any simple way to control the
 # options for mysql-test-run, so ignore the make target and just call it
 # manually.  Nonstandard options chosen are:
@@ -1220,7 +1245,7 @@ export MTR_BUILD_THREAD=$(( $(date +%s) % 1100 ))
   set -ex
   cd %{buildroot}%{_datadir}/mysql-test
 
-  export common_testsuite_arguments=" --parallel=auto --force --retry=2 --suite-timeout=900 --testcase-timeout=30 --mysqld=--binlog-format=mixed --force-restart --shutdown-timeout=60 --max-test-fail=5 "
+  export common_testsuite_arguments=" --port-base=$(( $(date +%s) % 20000 + 10000 )) --parallel=auto --force --retry=2 --suite-timeout=900 --testcase-timeout=30 --mysqld=--binlog-format=mixed --force-restart --shutdown-timeout=60 --max-test-fail=5 "
 
   # If full testsuite has already been run on this version and we don't explicitly want the full testsuite to be run
   if [[ "%{last_tested_version}" == "%{version}" ]] && [[ %{force_run_testsuite} -eq 0 ]]
@@ -1652,6 +1677,12 @@ fi
 %endif
 
 %changelog
+* Sat Nov 16 2024 Michal Schorm <mschorm@redhat.com> - 3:10.11.10-1
+- Rebase to 10.11.10
+
+* Tue Aug 13 2024 Michal Schorm <mschorm@redhat.com> - 3:10.11.9-1
+- Rebase to 10.11.9
+
 * Mon Dec 18 2023 Michal Schorm <mschorm@redhat.com> - 3:10.11.6-1
 - Rebase to 10.11.6
 
