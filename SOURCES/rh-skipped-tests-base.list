@@ -89,3 +89,9 @@ rpl.rpl_slave_shutdown_mdev20821            :
 
 # Fails since 10.5.22
 mariabackup.aria_log_dir_path               :
+
+# Fails since 10.5.26
+mariabackup.slave_provision_nolock :
+
+# Fails on 10.5.27
+main.timezone :

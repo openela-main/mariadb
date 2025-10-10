@@ -5,11 +5,11 @@ Thus "chown 0" will always fail
 Never parse 'ls' output!
 http://mywiki.wooledge.org/BashFAQ/087
 
---- mariadb-10.4.12/scripts/mysql_install_db.sh	2020-01-26 21:43:53.000000000 +0100
-+++ mariadb-10.4.12/scripts/mysql_install_db.sh_patched	2020-01-29 11:11:09.448812331 +0100
-@@ -482,13 +482,16 @@ if test -n "$user"
+--- mariadb-10.5.26-downstream_modified/scripts/mysql_install_db.sh	2024-08-03 08:57:42.000000000 +0200
++++ mariadb-10.5.26-downstream_modified/scripts/mysql_install_db.sh_patched	2024-10-19 13:50:46.157063739 +0200
+@@ -494,13 +494,16 @@ if test -n "$user"
  then
-   if test -z "$srcdir" -a "$in_rpm" -eq 0
+   if test -z "$srcdir" -a "$in_rpm" -eq 0 -a -d "$pamtooldir/auth_pam_tool_dir"
    then
 -    chown 0 "$pamtooldir/auth_pam_tool_dir/auth_pam_tool" && \
 -    chmod 04755 "$pamtooldir/auth_pam_tool_dir/auth_pam_tool"

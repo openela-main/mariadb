@@ -1,3 +1,6 @@
+# To both save infrastrucutre resources and workaround for i686 FTBFS
+ExcludeArch: %{ix86}
+
 #   This is a fix for the https://fedoraproject.org/wiki/Changes/CMake_to_do_out-of-source_builds
 #   So the beaviour will be the same also in F31 nad F32
 %undefine __cmake_in_source_build
@@ -15,7 +18,7 @@
 # The last version on which the full testsuite has been run
 # In case of further rebuilds of that version, don't require full testsuite to be run
 # run only "main" suite
-%global last_tested_version 10.5.22
+%global last_tested_version 10.5.27
 # Set to 1 to force run the testsuite even if it was already tested in current version
 %global force_run_testsuite 0
 
@@ -30,6 +33,11 @@
 # Turn that off to ensure such files don't get included in RPMs (cf bz#884755).
 %global _default_patch_flags --no-backup-if-mismatch
 
+# Temporary workaround to fix the "internal compiler error" described in https://bugzilla.redhat.com/show_bug.cgi?id=2239498
+# TODO: Remove when the issue is resolved
+%ifarch i686
+%global _lto_cflags %{nil}
+%endif
 
 
 # Mroonga engine
@@ -109,7 +117,7 @@
 %bcond_without unbundled_pcre
 %else
 %bcond_with unbundled_pcre
-%global pcre_bundled_version 10.42
+%global pcre_bundled_version 10.44
 %endif
 
 # Use main python interpretter version
@@ -147,7 +155,7 @@
 %global sameevr   %{epoch}:%{version}-%{release}
 
 Name:             mariadb
-Version:          10.5.22
+Version:          10.5.27
 Release:          1%{?with_debug:.debug}%{?dist}
 Epoch:            3
 
@@ -219,6 +227,10 @@ Patch16:          %{pkgnamepatch}-auth_pam_tool_dir.patch
 #   Patch17: Revert of an upstream commit
 Patch17:          upstream_5cc2096f93b7f130b36f8bc0fc43440db9a848e4.patch
 
+#   Patch14: make MTR port calculation reasonably predictable
+Patch14:          %{pkgnamepatch}-mtr.patch
+
+BuildRequires:    make
 BuildRequires:    cmake gcc-c++
 BuildRequires:    multilib-rpm-config
 BuildRequires:    selinux-policy-devel
@@ -731,6 +743,7 @@ rm -r storage/rocksdb/
 %patch4 -p1
 %patch7 -p1
 %patch9 -p1
+%patch14 -p1
 # The test in Patch 10 has been recently updated by upstream
 # and the test was disabled in the testuite run
 #   main.ssl_cipher     [ disabled ]  MDEV-17184 - Failures with OpenSSL 1.1.1
@@ -1182,14 +1195,6 @@ rm %{buildroot}%{_mandir}/man1/mbstream.1*
 %check
 %if %{with test}
 %if %runselftest
-# hack to let 32- and 64-bit tests run concurrently on same build machine
-export MTR_PARALLEL=1
-# Builds might happen at the same host, avoid collision
-#   The port used is calculated as 20 * MTR_BUILD_THREAD + 10000
-#   The resulting port must be between 5000 and 32767
-#   This is the same as using option "--build-thread" for the "mysql-test-run.pl"
-export MTR_BUILD_THREAD=$(( $(date +%s) % 1100 ))
-
 # The cmake build scripts don't provide any simple way to control the
 # options for mysql-test-run, so ignore the make target and just call it
 # manually.  Nonstandard options chosen are:
@@ -1210,7 +1215,7 @@ export MTR_BUILD_THREAD=$(( $(date +%s) % 1100 ))
   set -ex
   cd %{buildroot}%{_datadir}/mysql-test
 
-  export common_testsuite_arguments=" --parallel=auto --force --retry=2 --suite-timeout=900 --testcase-timeout=30 --mysqld=--binlog-format=mixed --force-restart --shutdown-timeout=60 --max-test-fail=5 "
+  export common_testsuite_arguments=" --port-base=$(( $(date +%s) % 20000 + 10000 )) --parallel=auto --force --retry=2 --suite-timeout=900 --testcase-timeout=30 --mysqld=--binlog-format=mixed --force-restart --shutdown-timeout=60 --max-test-fail=5 "
 
   # If full testsuite has already been run on this version and we don't explicitly want the full testsuite to be run
   if [[ "%{last_tested_version}" == "%{version}" ]] && [[ %{force_run_testsuite} -eq 0 ]]
@@ -1630,6 +1635,15 @@ fi
 %endif
 
 %changelog
+* Tue Dec 03 2024 Michal Schorm <mschorm@redhat.com> - 3:10.5.27-1
+- Rebase to 10.5.27
+
+* Fri Oct 18 2024 Michal Schorm <mschorm@redhat.com> - 3:10.5.26-1
+- Rebase to 10.5.26
+
+* Tue Jun 11 2024 Michal Schorm <mschorm@redhat.com> - 3:10.5.25-1
+- Rebase to 10.5.25
+
 * Mon Sep 04 2023 Michal Schorm <mschorm@redhat.com> - 3:10.5.22-1
 - Rebase to 10.5.22
 
