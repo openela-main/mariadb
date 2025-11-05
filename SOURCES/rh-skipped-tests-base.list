@@ -95,3 +95,4 @@ mariabackup.slave_provision_nolock :
 
 # Fails on 10.5.27
 main.timezone :
+main.alter_table_combinations :

@@ -18,7 +18,7 @@ ExcludeArch: %{ix86}
 # The last version on which the full testsuite has been run
 # In case of further rebuilds of that version, don't require full testsuite to be run
 # run only "main" suite
-%global last_tested_version 10.5.27
+%global last_tested_version 10.5.29
 # Set to 1 to force run the testsuite even if it was already tested in current version
 %global force_run_testsuite 0
 
@@ -117,7 +117,7 @@ ExcludeArch: %{ix86}
 %bcond_without unbundled_pcre
 %else
 %bcond_with unbundled_pcre
-%global pcre_bundled_version 10.44
+%global pcre_bundled_version 10.45
 %endif
 
 # Use main python interpretter version
@@ -155,8 +155,8 @@ ExcludeArch: %{ix86}
 %global sameevr   %{epoch}:%{version}-%{release}
 
 Name:             mariadb
-Version:          10.5.27
-Release:          1%{?with_debug:.debug}%{?dist}
+Version:          10.5.29
+Release:          2%{?with_debug:.debug}%{?dist}
 Epoch:            3
 
 Summary:          A very fast and robust SQL database server
@@ -1635,6 +1635,12 @@ fi
 %endif
 
 %changelog
+* Wed Oct 01 2025 Pavol Sloboda <psloboda@redhat.com> - 3:10.5.29-2
+- Release bump for rebuild
+
+* Mon Aug 25 2025 Pavol Sloboda <psloboda@redhat.com> - 3:10.5.29-1
+- Rebase to 10.5.29
+
 * Tue Dec 03 2024 Michal Schorm <mschorm@redhat.com> - 3:10.5.27-1
 - Rebase to 10.5.27
 
