@@ -158,7 +158,7 @@ ExcludeArch: %{ix86}
 
 Name:             mariadb
 Version:          10.5.29
-Release:          2%{?with_debug:.debug}%{?dist}
+Release:          3%{?with_debug:.debug}%{?dist}
 Epoch:            3
 
 Summary:          A very fast and robust SQL database server
@@ -225,6 +225,8 @@ Patch10:          %{pkgnamepatch}-ssl-cipher-tests.patch
 
 #   Patch14: make MTR port calculation reasonably predictable
 Patch14:          %{pkgnamepatch}-mtr.patch
+
+Patch18:          CVE-2025-13699.patch
 
 BuildRequires:    make
 BuildRequires:    cmake gcc-c++
@@ -757,6 +759,7 @@ rm -r storage/rocksdb/
 # Keeping the patch commented out, need to revisit
 #  once the test is re-enabled by upstream  in some future release
 #%%patch10 -p1
+%patch18 -p1
 
 # generate a list of tests that fail, but are not disabled by upstream
 cat %{SOURCE50} | tee -a mysql-test/unstable-tests
@@ -1655,6 +1658,9 @@ fi
 %endif
 
 %changelog
+* Tue Dec 02 2025 Pavol Sloboda <psloboda@redhat.com> - 3:10.5.29-3
+- Release bump for rebuild
+
 * Wed Oct 01 2025 Pavol Sloboda <psloboda@redhat.com> - 3:10.5.29-2
 - Release bump for rebuild
 
