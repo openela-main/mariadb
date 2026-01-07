@@ -69,3 +69,8 @@ innodb.log_file_size_online                  :
 main.connect                                 :
 main.timezone                                :
 innodb.log_file_name                         :
+
+# Fails with --ssl flag on all architectures since 10.11.14
+# Related: RHEL-130723
+main.ssl_cipher                              :
+

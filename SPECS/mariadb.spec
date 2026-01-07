@@ -14,7 +14,7 @@ ExcludeArch: %{ix86}
 # The last version on which the full testsuite has been run
 # In case of further rebuilds of that version, don't require full testsuite to be run
 # run only "main" suite
-%global last_tested_version 10.11.10
+%global last_tested_version 10.11.15
 # Set to 1 to force run the testsuite even if it was already tested in current version
 %global force_run_testsuite 0
 
@@ -113,12 +113,8 @@ ExcludeArch: %{ix86}
 # MariaDB 10.0 and later requires pcre >= 10.34, otherwise we need to use
 # the bundled library, since the package cannot be build with older version
 #   https://mariadb.com/kb/en/pcre/
-%if 0%{?fedora} || 0%{?rhel} > 7
-%bcond_without unbundled_pcre
-%else
 %bcond_with unbundled_pcre
-%global pcre_bundled_version 10.44
-%endif
+%global pcre_bundled_version 10.46
 
 # To avoid issues with a breaking change in FMT library, bundle it on systems where FMT wasn't fixed yet
 # See mariadb-libfmt.patch for detailed description.
@@ -164,7 +160,7 @@ ExcludeArch: %{ix86}
 %global sameevr   %{epoch}:%{version}-%{release}
 
 Name:             mariadb
-Version:          10.11.10
+Version:          10.11.15
 Release:          1%{?with_debug:.debug}%{?dist}
 Epoch:            3
 
@@ -225,16 +221,16 @@ Patch4:           %{pkgnamepatch}-logrotate.patch
 Patch7:           %{pkgnamepatch}-scripts.patch
 #   Patch9: pre-configure to comply with guidelines
 Patch9:           %{pkgnamepatch}-ownsetup.patch
-#   Patch10: Fix cipher name in the SSL Cipher name test
-Patch10:          %{pkgnamepatch}-ssl-cipher-tests.patch
 
 #   Patch13: bundle the FMT library
 Patch13:          %{pkgnamepatch}-libfmt.patch
 #   Patch14: make MTR port calculation reasonably predictable
 Patch14:          %{pkgnamepatch}-mtr.patch
+#   Patch15: fix bundled pcre version to 10.46 because of CVE-2025-58050
+Patch15:          pcre_bundling.patch
 
-BuildRequires:    make
-BuildRequires:    cmake gcc-c++
+BuildRequires:    make cmake gcc-c++
+BuildRequires:    libxcrypt-devel
 BuildRequires:    multilib-rpm-config
 BuildRequires:    selinux-policy-devel
 BuildRequires:    systemd systemd-devel
@@ -486,6 +482,8 @@ Requires:         systemd
 %{?systemd_requires}
 # RHBZ#1496131; use 'iproute' instead of 'net-tools'
 Requires:         iproute
+# The 'wsrep_sst_common' and 'wsrep_sst_rsync_tunnel' calls 'which' utility
+%{?with_galera:Requires: which}
 %if %{with mysql_names}
 Provides:         mysql-server = %{sameevr}
 Provides:         mysql-server%{?_isa} = %{sameevr}
@@ -559,6 +557,7 @@ For InnoDB, "hot online" backups are possible.
 Summary:          The RocksDB storage engine for MariaDB
 Requires:         %{name}-server%{?_isa} = %{sameevr}
 Provides:         bundled(rocksdb)
+Conflicts:        rocksdb-tools
 
 %description      rocksdb-engine
 The RocksDB storage engine is used for high performance servers on SSD drives.
@@ -766,7 +765,7 @@ cp %{SOURCE1} redhat-linux-build/extra/libfmt/
 # Remove JAR files that upstream puts into tarball
 find . -name "*.jar" -type f -exec rm --verbose -f {} \;
 # Remove testsuite for the mariadb-connector-c
-rm -rf libmariadb/unittest
+rm -r libmariadb/unittest
 %if %{without rocksdb}
 rm -r storage/rocksdb/
 %endif
@@ -780,6 +779,9 @@ rm -r storage/rocksdb/
 %patch -P13 -p1
 %endif
 %patch -P14 -p1
+%if %{without unbundled_pcre}
+%patch -P15 -p1
+%endif
 # The test in Patch 10 has been recently updated by upstream
 # and the test was disabled in the testuite run
 #   main.ssl_cipher     [ disabled ]  MDEV-17184 - Failures with OpenSSL 1.1.1
@@ -809,6 +811,12 @@ cp %{SOURCE1} %{_vpath_builddir}/bundles/
 cp %{SOURCE2} %{SOURCE3} %{SOURCE10} %{SOURCE11} %{SOURCE12} \
    %{SOURCE14} %{SOURCE15} %{SOURCE16} %{SOURCE18} %{SOURCE70} %{SOURCE73} scripts
 
+# Create a sysusers.d config file
+# We no longer enforce the hardcoded UID/GID 27.
+cat > support-files/%{name}.sysusers.conf << EOF
+u mysql 27 'MariaDB and MySQL Server' %{dbdatadir} -
+EOF
+
 %if %{with galera}
 # prepare selinux policy
 mkdir selinux
@@ -817,7 +825,7 @@ sed 's/mariadb-server-galera/%{name}-server-galera/' %{SOURCE72} > selinux/%{nam
 
 
 # Get version of PCRE, that upstream use
-pcre_version=`grep -e "https://github.com/PCRE2Project/pcre2/releases/download" cmake/pcre.cmake | sed -r "s;.*pcre2-([[:digit:]]+\.[[:digit:]]+).*;\1;" `
+pcre_version=`grep -e "URL \"" cmake/pcre.cmake | sed -r "s;.*pcre2-([[:digit:]]+\.[[:digit:]]+).*;\1;" `
 
 # Check if the PCRE version in macro 'pcre_bundled_version', used in Provides: bundled(...), is the same version as upstream actually bundles
 %if %{without unbundled_pcre}
@@ -846,6 +854,27 @@ fi
         exit 1
     fi
 %endif
+
+
+# Adjust the compliation flags:
+# First initialize the distribution default values
+%{set_build_flags}
+# Add custom tweaks
+CFLAGS="$CFLAGS -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
+# Force the 'PIC' mode so that we can build libmysqld.so
+CFLAGS="$CFLAGS -fPIC"
+
+# When making a debug build, remove all optimizations
+%if %{with debug}
+# -D_FORTIFY_SOURCE requires optimizations enabled. Disable the fortify.
+%undefine _fortify_level
+CFLAGS=`echo "$CFLAGS" | sed -r 's/-O[0123]//'`
+CFLAGS="$CFLAGS -O0 -g"
+%endif
+
+# Apply the updated values
+CXXFLAGS="$CFLAGS"; CPPFLAGS="$CFLAGS"; export CFLAGS CXXFLAGS CPPFLAGS
+
 
 # The INSTALL_xxx macros have to be specified relative to CMAKE_INSTALL_PREFIX
 # so we can't use %%{_datadir} and so forth here.
@@ -902,6 +931,7 @@ fi
          -DPLUGIN_SPHINX=%{?with_sphinx:DYNAMIC}%{!?with_sphinx:NO} \
          -DPLUGIN_CONNECT=%{?with_connect:DYNAMIC}%{!?with_connect:NO} \
          -DPLUGIN_S3=%{?with_s3:DYNAMIC}%{!?with_s3:NO} \
+         -DPLUGIN_AUTH_GSSAPI=%{?with_gssapi:DYNAMIC}%{!?with_gssapi:NO} \
          -DPLUGIN_AUTH_PAM=%{?with_pam:YES}%{!?with_pam:NO} \
          -DPLUGIN_AUTH_PAM_V1=%{?with_pam:DYNAMIC}%{!?with_pam:NO} \
          -DPLUGIN_COLUMNSTORE=NO \
@@ -919,35 +949,8 @@ fi
 # The issue is that the MariaDB upstream level of hardening is lower than expected by Red Hat
 # We disable this option to the default compilation flags (which have higher level of hardening) will be used
 
-
-CFLAGS="$CFLAGS -D_GNU_SOURCE -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE"
-# force PIC mode so that we can build libmysqld.so
-CFLAGS="$CFLAGS -fPIC"
-
-%if %{with debug}
-# Override all optimization flags when making a debug build
-# -D_FORTIFY_SOURCE requires optimizations enabled. Disable the fortify.
-%undefine _fortify_level
-CFLAGS=`echo "$CFLAGS" | sed -r 's/-O[0123]//'`
-
-CFLAGS="$CFLAGS -O0 -g"
-
-# Fixes for Fedora 32 & Rawhide (GCC 10.0):
-%if 0%{?fedora} >= 32
-CFLAGS="$CFLAGS -Wno-error=class-memaccess"
-CFLAGS="$CFLAGS -Wno-error=enum-conversion"
-# endif f32
-%endif
-# endif debug
-%endif
-
-CXXFLAGS="$CFLAGS"
-CPPFLAGS="$CFLAGS"
-export CFLAGS CXXFLAGS CPPFLAGS
-
-
-# Print all Cmake options values; "-LAH" means "List Advanced Help"
-cmake -B %{_vpath_builddir} -LAH
+# Print all cached CMake options values; "-N" means to run in read-only mode; "-LAH" means "List Advanced Help" for each option
+cmake -B %{_vpath_builddir} -N -LAH
 
 %cmake_build
 
@@ -1014,9 +1017,6 @@ mv %{buildroot}%{_sysconfdir}/my.cnf.d/server.cnf %{buildroot}%{_sysconfdir}/my.
 rm %{buildroot}%{_libexecdir}/rcmysql
 # Remove upstream Systemd service files
 rm -r %{buildroot}%{_datadir}/%{pkg_name}/systemd
-# Our downstream Systemd service file have set aliases to the "mysql" names in the [Install] section.
-# They can be enabled / disabled by "systemctl enable / diable <service_name>"
-rm %{buildroot}%{_unitdir}/{mysql,mysqld}.service
 
 # install systemd unit files and scripts for handling server startup
 install -D -p -m 644 %{_vpath_builddir}/scripts/mysql.service %{buildroot}%{_unitdir}/%{daemon_name}.service
@@ -1030,9 +1030,9 @@ install -p -m 644 %{_vpath_builddir}/scripts/mariadb-scripts-common %{buildroot}
 
 # Install downstream version of tmpfiles
 install -D -p -m 0644 %{_vpath_builddir}/scripts/mariadb.tmpfiles.d %{buildroot}%{_tmpfilesdir}/%{name}.conf
-%if 0%{?mysqld_pid_dir:1}
-echo "d %{pidfiledir} 0755 mysql mysql -" >>%{buildroot}%{_tmpfilesdir}/%{name}.conf
-%endif
+
+# Install downstream version of sysusers.d config
+install -m0644 -D support-files/%{name}.sysusers.conf %{buildroot}%{_sysusersdir}/%{name}.conf
 
 # install additional galera selinux policy
 %if %{with galera}
@@ -1146,7 +1146,7 @@ unlink %{buildroot}%{_libdir}/libmariadb.so
 rm %{buildroot}%{_mandir}/man3/*
 # Client plugins
 rm %{buildroot}%{_libdir}/%{pkg_name}/plugin/{dialog.so,mysql_clear_password.so,sha256_password.so}
-%if %{with gssapi}
+%if %{with gssapi} || %{with hashicorp}
 rm %{buildroot}%{_libdir}/%{pkg_name}/plugin/auth_gssapi_client.so
 %endif
 %endif
@@ -1570,6 +1570,7 @@ fi
 %{_datadir}/%{pkg_name}/systemd/%{daemon_name}-extra@.socket
 
 %{_unitdir}/%{daemon_name}.service
+%{_unitdir}/mysql{,d}.service
 %{_unitdir}/%{daemon_name}@.service
 %{_unitdir}/%{daemon_name}@bootstrap.service.d
 
@@ -1578,6 +1579,7 @@ fi
 %{_libexecdir}/mariadb-check-upgrade
 %{_libexecdir}/mariadb-scripts-common
 
+# Remember to also update the mariadb.tmpfiles.d.in file when updating these permissions
 %attr(0755,mysql,mysql) %dir %{pidfiledir}
 %attr(0755,mysql,mysql) %dir %{dbdatadir}
 %attr(0750,mysql,mysql) %dir %{logfiledir}
@@ -1716,6 +1718,32 @@ fi
 %endif
 
 %changelog
+* Mon Dec 01 2025 Petr Khartskhaev <pkhartsk@redhat.com> - 3:10.11.15-1
+- Rebase to 10.11.15
+- Resolves: RHBZ#2417697
+
+* Wed Nov 19 2025 Petr Khartskhaev <pkhartsk@redhat.com> - 3:10.11.14-3
+- Add installation of downstream sysusers.d config file in place of the upstream one
+
+* Wed Oct 29 2025 Nikola Davidova <ndavidov@redhat.com> - 3:10.11.14-3
+- Bump release for tmpfiles.d change
+
+* Mon Oct 27 2025 Lukas Javorsky <ljavorsk@redhat.com> - 3:10.11.14-2
+- Revert to soft static allocation of MariaDB and MySQL sysusers.d files
+
+* Tue Aug 12 2025 Pavol Sloboda <psloboda@redhat.com> - 3:10.11.14-1
+- Rebase to 10.11.14
+- Resolves: RHBZ#2386961
+
+* Fri Jun 06 2025 Pavol Sloboda <psloboda@redhat.com> - 3:10.11.13-1
+- Rebase to 10.11.13
+
+* Wed Feb 05 2025 Michal Schorm <mschorm@redhat.com> - 3:10.11.11-1
+- Rebase to 10.11.11
+
+* Sat Feb 01 2025 Björn Esser <besser82@fedoraproject.org> - 3:10.11.10-4
+- Add explicit BR: libxcrypt-devel
+
 * Sat Nov 16 2024 Michal Schorm <mschorm@redhat.com> - 3:10.11.10-1
 - Rebase to 10.11.10
 
