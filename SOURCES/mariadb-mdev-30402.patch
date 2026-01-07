@@ -1,0 +1,12 @@
+--- mariadb-10.3.39/scripts/wsrep_sst_mariabackup.sh	2023-08-11 11:31:40.415022889 +0200
++++ ../../mariadb-10.3.39/scripts/wsrep_sst_mariabackup.sh	2023-08-11 11:32:01.924161077 +0200
+@@ -340,6 +340,9 @@ get_transfer()
+                         "Use workaround for socat $SOCAT_VERSION bug"
+                 fi
+             fi
++            if check_for_version "$SOCAT_VERSION" '1.7.4'; then
++                tcmd="$tcmd,no-sni=1"
++            fi
+         fi
+ 
+         if [ "${sockopt#*,dhparam=}" = "$sockopt" ]; then

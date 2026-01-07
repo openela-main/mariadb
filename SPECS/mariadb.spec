@@ -33,7 +33,7 @@
 #   Experimental version of the Cassandra storage engine
 #   The tests needs running cassandra server
 #   Do not build it for now
-%if %_arch == x86_64 && 0%{?fedora}
+%if "%_arch" == "x86_64" && 0%{?fedora}
 %bcond_without tokudb
 %bcond_without mroonga
 %bcond_without rocksdb
@@ -106,7 +106,7 @@
 %bcond_without unbundled_pcre
 %else
 %bcond_with unbundled_pcre
-%global pcre_bundled_version 8.44
+%global pcre_bundled_version 8.45
 %endif
 
 # Include systemd files
@@ -142,8 +142,8 @@
 %global sameevr   %{epoch}:%{version}-%{release}
 
 Name:             mariadb
-Version:          10.3.28
-Release:          1%{?with_debug:.debug}%{?dist}
+Version:          10.3.39
+Release:          2%{?with_debug:.debug}%{?dist}
 Epoch:            3
 
 Summary:          A very fast and robust SQL database server
@@ -190,9 +190,12 @@ Patch9:           %{pkgnamepatch}-ownsetup.patch
 Patch10:          %{pkgnamepatch}-annocheck.patch
 #   Patch12: Downstream fix for a correct pkgconfig file location
 Patch12:          %{pkgnamepatch}-pcdir.patch
-# Patch15:  Add option to edit groonga's and groonga-normalizer-mysql install path
-Patch15:          %{pkgnamepatch}-groonga.patch
+#   Patch13: Fix failing 10.3.39 ssl and disks tests
+Patch13:          %{pkgnamepatch}-10.3.39-tests.patch
+#   Patch14: Backport MDEV-30402 socat patch
+Patch14:          %{pkgnamepatch}-mdev-30402.patch
 
+Patch15:          CVE-2025-13699.patch
 
 BuildRequires:    cmake gcc-c++
 BuildRequires:    multilib-rpm-config
@@ -697,6 +700,8 @@ find . -name "*.jar" -type f -exec rm --verbose -f {} \;
 %patch9 -p1
 %patch10 -p1
 %patch12 -p1
+%patch13 -p1
+%patch14 -p1
 %patch15 -p1
 
 # workaround for upstream bug #56342
@@ -1150,7 +1155,7 @@ export MTR_BUILD_THREAD=%{__isa_bits}
 
   cd mysql-test
   perl ./mysql-test-run.pl --parallel=auto --force --retry=1 --ssl \
-    --suite-timeout=900 --testcase-timeout=30 \
+    --suite-timeout=5000 --testcase-timeout=100 \
     --mysqld=--binlog-format=mixed --force-restart \
     --shutdown-timeout=60 --max-test-fail=10 --big-test \
     --skip-test=spider \
@@ -1358,7 +1363,7 @@ fi
 %dir %{_libdir}/%{pkg_name}
 %dir %{_libdir}/%{pkg_name}/plugin
 %{_libdir}/security/pam_user_map.so
-%{_sysconfdir}/security/user_map.conf
+%config(noreplace) %{_sysconfdir}/security/user_map.conf
 %{_libdir}/%{pkg_name}/plugin/*
 %{?with_oqgraph:%exclude %{_libdir}/%{pkg_name}/plugin/ha_oqgraph.so}
 %{?with_connect:%exclude %{_libdir}/%{pkg_name}/plugin/ha_connect.so}
@@ -1406,7 +1411,6 @@ fi
 %{_datadir}/%{pkg_name}/mysql_system_tables.sql
 %{_datadir}/%{pkg_name}/mysql_system_tables_data.sql
 %{_datadir}/%{pkg_name}/mysql_test_data_timezone.sql
-%{_datadir}/%{pkg_name}/mysql_to_mariadb.sql
 %{_datadir}/%{pkg_name}/mysql_performance_tables.sql
 %{_datadir}/%{pkg_name}/mysql_test_db.sql
 %if %{with mroonga}
@@ -1588,6 +1592,40 @@ fi
 %endif
 
 %changelog
+* Mon Dec 1 2025 Pavol Sloboda <psloboda@redhat.com> - 3:10.3.39-2
+- Release bump for rebuild
+
+* Thu Jun 22 2023 Anton Bobrov <abobrov@redhat.com> - 3:10.3.39-1
+- Rebase to 10.3.39
+- CVEs fixed:
+  CVE-2022-47015, CVE-2018-25032, CVE-2022-32091, CVE-2022-32084
+
+* Thu Jun 30 2022 Zuzana Miklankova <zmiklank@redhat.com> - 3:10.3.35-1
+- Rebase to 10.3.35
+
+* Thu Jun 30 2022 Zuzana Miklankova <zmiklank@redhat.com> - 3:10.3.34-1
+- Rebase to 10.3.34
+
+* Mon Jan 17 2022 Zuzana Miklankova <zmiklank@redhat.com> - 3:10.3.32-2
+- Add delaycompress option to the logrotate script
+- Resolves: rhbz:#2015580
+
+* Wed Jan 12 2022 Zuzana Miklankova <zmiklank@redhat.com> - 3:10.3.32-1
+- Rebase to 10.3.32
+
+* Tue Jan 11 2022 Zuzana Miklankova <zmiklank@redhat.com> - 3:10.3.31-1
+- Rebase to 10.3.31
+
+* Fri Sep 24 2021 Lukas Javorsky <ljavorsk@redhat.com> - 3:10.3.30-1
+- Rebase to 10.3.30
+
+* Mon Aug 09 2021 Lukas Javorsky <ljavorsk@redhat.com> - 3:10.3.29-2
+- Set user_map.conf file to be noreplace config file
+- Resolves: rhbz#1989534
+
+* Tue May 05 2021 Michal Schorm <mschorm@redhat.com> - 3:10.3.29-1
+- Rebase to 10.3.29
+
 * Wed Mar 24 2021 Michal Schorm <mschorm@redhat.com> - 3:10.3.28-1
 - Rebase to 10.3.28
 

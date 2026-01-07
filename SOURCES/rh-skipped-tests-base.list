@@ -25,3 +25,6 @@ main.myisampack :
 
 # We don't build the plugin in server; we build it in mariadb-connector-c instead
 plugins.auth_ed25519 :
+
+# Fails when builder uses a different trimezone than expected
+main.timezone :

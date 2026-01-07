@@ -1,0 +1,101 @@
+--- mariadb-10.3.39/mysql-test/include/default_mysqld.cnf	2023-05-03 06:32:44.000000000 +0200
++++ ../../mariadb-10.3.39/mysql-test/include/default_mysqld.cnf	2023-07-07 13:58:40.255283041 +0200
+@@ -127,3 +127,8 @@ local-infile
+ # tables.  Let's enable it in the [server] group, because this group
+ # is read after [mysqld] and [embedded]
+ loose-aria
++
++[mysqltest]
++loose-ssl-ca=@ENV.MYSQL_TEST_DIR/std_data/cacert.pem
++loose-ssl-cert=@ENV.MYSQL_TEST_DIR/std_data/server-cert.pem
++loose-ssl-key=@ENV.MYSQL_TEST_DIR/std_data/server-key.pem
+
+--- mariadb-10.3.39/mysql-test/include/wait_until_connected_again.inc	2023-05-03 06:32:44.000000000 +0200
++++ ../../mariadb-10.3.39/mysql-test/include/wait_until_connected_again.inc	2023-07-07 13:55:30.424368106 +0200
+@@ -11,7 +11,7 @@ let $counter= 5000;
+ let $mysql_errno= 9999;
+ while ($mysql_errno)
+ {
+-  --error 0,ER_SERVER_SHUTDOWN,ER_CONNECTION_KILLED,ER_LOCK_WAIT_TIMEOUT,2002,2006,2013
++  --error 0,ER_SERVER_SHUTDOWN,ER_CONNECTION_KILLED,ER_LOCK_WAIT_TIMEOUT,2002,2006,2013,2026
+   show status;
+ 
+   dec $counter;
+
+--- mariadb-10.3.39/mysql-test/suite/rpl/t/rpl_err_ignoredtable.test	2023-05-03 06:32:45.000000000 +0200
++++ ../../mariadb-10.3.39/mysql-test/suite/rpl/t/rpl_err_ignoredtable.test	2023-07-07 13:54:31.152082427 +0200
+@@ -53,7 +53,7 @@ insert into t4 values (3),(4);
+ connection master;
+ # The get_lock function causes warning for unsafe statement.
+ --disable_warnings
+---error 0,1317,2013
++--error 0,1317,2013,2026
+ reap;
+ --enable_warnings
+ connection master1;
+
+--- mariadb-10.3.39/mysql-test/suite/innodb/t/innodb_bug51920.test	2023-05-03 06:32:44.000000000 +0200
++++ ../../mariadb-10.3.39/mysql-test/suite/innodb/t/innodb_bug51920.test	2023-07-07 15:11:39.000404508 +0200
+@@ -36,7 +36,7 @@ let $wait_condition =
+ # depending on platform.
+ #
+ connection con1;
+--- error 1317, 2006, 2013, ER_CONNECTION_KILLED
++-- error 1317, 2006, 2013, 2026, ER_CONNECTION_KILLED
+ reap;
+ connection default;
+ DROP TABLE bug51920;
+
+--- mariadb-10.3.39/mysql-test/main/lock_kill.test	2023-05-03 06:32:44.000000000 +0200
++++ ../../mariadb-10.3.39/mysql-test/main/lock_kill.test	2023-07-07 15:13:54.335086789 +0200
+@@ -17,7 +17,7 @@ LOCK TABLE t1 WRITE;
+ eval KILL $conid;
+ --enable_query_log
+ --connection con1
+---error 0,2006,2013,ER_CONNECTION_KILLED
++--error 0,2006,2013,2026,ER_CONNECTION_KILLED
+ reap;
+ --connection default
+ --disconnect con1
+@@ -35,7 +35,7 @@ LOCK TABLE t1 WRITE, t2 WRITE;
+ eval KILL $conid;
+ --enable_query_log
+ --connection con1
+---error 0,2006,2013,ER_CONNECTION_KILLED
++--error 0,2006,2013,2026,ER_CONNECTION_KILLED
+ reap;
+ --connection default
+ --disconnect con1
+
+--- mariadb-10.3.39/mysql-test/main/loadxml.test	2023-05-03 06:32:44.000000000 +0200
++++ ../../mariadb-10.3.39/mysql-test/main/loadxml.test	2023-07-07 15:15:14.862492763 +0200
+@@ -83,7 +83,7 @@ connection default;
+ connection addconroot;
+ # Read response from connection to avoid packets out-of-order when disconnecting
+ # Note, that connection can already be dead due to previously issued kill
+---error 0,2013
++--error 0,2013,2026
+ --reap
+ disconnect addconroot;
+ connection default;
+
+--- mariadb-10.3.39/plugin/disks/mysql-test/disks/disks.test	2023-05-03 06:32:45.000000000 +0200
++++ ../../mariadb-10.3.39/plugin/disks/mysql-test/disks/disks.test	2023-07-10 11:48:28.859497746 +0200
+@@ -1,3 +1,3 @@
+ --replace_regex /varchar\([0-9]+\)/varchar(pathlen)/
+ show create table information_schema.disks;
+-select sum(Total) > sum(Available), sum(Total)>sum(Used) from information_schema.disks;
++select sum(Total) >= sum(Available), sum(Total) >= sum(Used) from information_schema.disks;
+
+--- mariadb-10.3.39/plugin/disks/mysql-test/disks/disks.result	2023-05-03 06:32:45.000000000 +0200
++++ ../../mariadb-10.3.39/plugin/disks/mysql-test/disks/disks.result	2023-07-10 12:47:10.460233056 +0200
+@@ -7,6 +7,6 @@ DISKS	CREATE TEMPORARY TABLE `DISKS` (
+   `Used` bigint(32) NOT NULL,
+   `Available` bigint(32) NOT NULL
+ ) ENGINE=MEMORY DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci
+-select sum(Total) > sum(Available), sum(Total)>sum(Used) from information_schema.disks;
+-sum(Total) > sum(Available)	sum(Total)>sum(Used)
++select sum(Total) >= sum(Available), sum(Total) >= sum(Used) from information_schema.disks;
++sum(Total) >= sum(Available)	sum(Total) >= sum(Used)
+ 1	1
+

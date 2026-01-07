@@ -1,3 +1,15 @@
 # Fails on s390x
 disks.disks :
 disks.disks_notembedded :
+
+# related to MDEV-20194
+# first check of `undefined` table causes warning,
+# instead INSERT and ALTER should cause it
+innodb.row_size_error_log_warnings_3 :
+
+# Fails since 2025
+archive.archive :
+compat/oracle.column_compression :
+main.func_compress :
+main.column_compression_rpl :
+main.column_compression :
