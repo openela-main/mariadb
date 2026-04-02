@@ -95,3 +95,7 @@ innodb.log_file_size_online                  :
 main.connect                                 :
 main.timezone                                :
 innodb.log_file_name                         :
+
+# Fails on x86_64 since 10.11.15
+innodb.innochecksum                          :
+innodb.101_compatibility                     :
