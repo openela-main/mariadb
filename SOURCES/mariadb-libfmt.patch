@@ -23,15 +23,15 @@ therefore we are using it instead of the bundled fmt.
 
 We are still keeping this patch in case it may be needed in the future and because it is needed in rhel
 
-diff -Naur mariadb-11.8.5/cmake/libfmt.cmake mariadb-11.8.5_patched/cmake/libfmt.cmake
---- mariadb-11.8.5/cmake/libfmt.cmake	2025-11-13 09:45:29.000000000 +0100
-+++ mariadb-11.8.5_patched/cmake/libfmt.cmake	2025-12-01 15:30:54.285523685 +0100
+diff -Naur mariadb-11.8.6/cmake/libfmt.cmake mariadb-11.8.6_patched/cmake/libfmt.cmake
+--- mariadb-11.8.6/cmake/libfmt.cmake	2026-01-31 14:27:46.000000000 +0100
++++ mariadb-11.8.6_patched/cmake/libfmt.cmake	2026-03-24 15:12:55.190229788 +0100
 @@ -15,7 +15,7 @@
    ExternalProject_Add(
      libfmt
      PREFIX   "${dir}"
--    URL "https://github.com/fmtlib/fmt/releases/download/12.0.0/fmt-12.0.0.zip"
-+    URL file:///${dir}/fmt-12.0.0.zip
-     URL_MD5 9bd04e6e8c5b1733e4eefb473604219d
+-    URL "https://github.com/fmtlib/fmt/releases/download/12.1.0/fmt-12.1.0.zip"
++    URL file:///${dir}/fmt-12.1.0.zip
+     URL_MD5 028c6979cad96a4260154f091885171a
      INSTALL_COMMAND ""
      CONFIGURE_COMMAND ""

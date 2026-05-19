@@ -112,3 +112,11 @@ mariabackup.slave_provision_nolock          :
 
 # Fails since 11.8.3
 main.myisampack                             :
+
+# Fails since 11.8.6
+main.chained_ssl_certificates               :
+mysql_sha2.socket                           :
+mysql_sha2.ssl_auto                         :
+mysql_sha2.ssl_manual                       :
+mysql_sha2.tcp_nossl                        :
+plugins.mdev38431                           :

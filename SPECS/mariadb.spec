@@ -1,6 +1,6 @@
 # Plain package name for cases, where %%{name} differs (e.g. for versioned packages)
 %global majorname mariadb
-%global package_version 11.8.5
+%global package_version 11.8.6
 %global majorversion %(echo %{package_version} | cut -d'.' -f1-2 )
 
 # Set if this package will be the default one in distribution
@@ -15,7 +15,7 @@
 # The last version on which the full testsuite has been run
 # In case of further rebuilds of that version, don't require full testsuite to be run
 # run only "main" suite
-%global last_tested_version 11.8.5
+%global last_tested_version 11.8.6
 # Set to 1 to force run the testsuite even if it was already tested in current version
 %global force_run_testsuite 0
 
@@ -119,7 +119,7 @@
 #   https://mariadb.com/kb/en/pcre/
 %bcond bundled_pcre 1
 %if %{with bundled_pcre}
-%global pcre_bundled_version 10.46
+%global pcre_bundled_version 10.47
 %endif
 
 # To avoid issues with a breaking change in FMT library, bundle it on systems where FMT wasn't fixed yet
@@ -133,7 +133,7 @@
 %endif
 
 %if %{with bundled_fmt}
-%global fmt_bundled_version 12.0.0
+%global fmt_bundled_version 12.1.0
 %endif
 
 # Include systemd files
@@ -170,7 +170,7 @@
 
 Name:             %{majorname}
 Version:          %{package_version}
-Release:          1%{?with_debug:.debug}%{?dist}
+Release:          2%{?with_debug:.debug}%{?dist}
 Epoch:            3
 
 Summary:          A very fast and robust SQL database server
@@ -239,6 +239,8 @@ Patch14:          %{majorname}-mtr.patch
 
 Patch16:          %{majorname}-federated.patch
 Patch18:          pcre_bundling.patch
+
+Patch17:          upstream_87309d3d4bb8f48910d05b0ca5ee989bcdd6b053.patch
 
 # This macro is used for package/sub-package names in the entire specfile
 %if %?mariadb_default
@@ -896,6 +898,7 @@ rm -r storage/rocksdb/
 
 %patch -P14 -p1
 %patch -P16 -p1
+%patch -P17 -p1
 %if %{with bundled_pcre}
 %patch -P18 -p1
 %endif
@@ -1856,6 +1859,13 @@ fi
 %endif
 
 %changelog
+* Wed Feb 18 2026 Pavol Sloboda <psloboda@redhat.com> - 3:11.8.6-2
+- Added a fix for SIGSEGV when using skip-grant-tables
+- Resolves: RHBZ#2438390
+
+* Fri Feb 06 2026 Michal Schorm <mschorm@redhat.com> - 3:11.8.6-1
+- Rebase to 11.8.6
+
 * Mon Dec 1 2025 Pavol Sloboda <psloboda@redhat.com> - 3:11.8.5-1
 - Rebase to 11.8.5
 

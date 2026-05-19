@@ -21,3 +21,7 @@ encryption.innodb-bad-key-change3			: BUG#0
 innodb.instant_alter_import			        : BUG#0
 innodb.table_flags	                		: BUG#0
 innodb.101_compatibility        		: BUG#0
+
+# Fails since 11.8.6
+mariabackup.incremental_page_compressed  :
+innodb.restart                           :
