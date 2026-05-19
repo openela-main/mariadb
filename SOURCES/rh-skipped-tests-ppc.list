@@ -1,0 +1,23 @@
+# Fails since 10.5.20
+innodb.innodb_defrag_concurrent        :
+parts.partition_alter4_innodb          :
+rpl.rpl_parallel_optimistic_xa_lsu_off :
+
+# Fails on 10.11.6
+perfschema.threads_innodb :
+
+# Fails since 11.8.3
+encryption.innodb_encryption-page-compression :
+encryption.innochecksum                    :
+encryption.innodb-checksum-algorithm       :
+encryption.innodb-discard-import           :
+encryption.innodb-discard-import-change    :
+encryption.instant_alter_import            :
+encryption.innodb_import			: BUG#0
+encryption.innodb-key-rotation-disable			: BUG#0
+encryption.innodb-force-corrupt			: BUG#0
+encryption.innodb-page_encryption_compression			: BUG#0
+encryption.innodb-bad-key-change3			: BUG#0
+innodb.instant_alter_import			        : BUG#0
+innodb.table_flags	                		: BUG#0
+innodb.101_compatibility        		: BUG#0
