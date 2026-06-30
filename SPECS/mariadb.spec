@@ -18,7 +18,7 @@ ExcludeArch: %{ix86}
 # The last version on which the full testsuite has been run
 # In case of further rebuilds of that version, don't require full testsuite to be run
 # run only "main" suite
-%global last_tested_version 10.11.15
+%global last_tested_version 10.11.18
 # Set to 1 to force run the testsuite even if it was already tested in current version
 %global force_run_testsuite 0
 
@@ -113,7 +113,7 @@ ExcludeArch: %{ix86}
 %else
 %bcond_with unbundled_pcre
 %endif
-%global pcre_bundled_version 10.46
+%global pcre_bundled_version 10.47
 
 # To avoid issues with a breaking change in FMT library, bundle it on systems where FMT wasn't fixed yet
 # See mariadb-libfmt.patch for detailed description.
@@ -157,7 +157,7 @@ ExcludeArch: %{ix86}
 %global sameevr   %{epoch}:%{version}-%{release}
 
 Name:             mariadb
-Version:          10.11.15
+Version:          10.11.18
 Release:          1%{?with_debug:.debug}%{?dist}
 Epoch:            3
 
@@ -1432,7 +1432,6 @@ fi
 
 %if %{with galera}
 %files server-galera
-%doc Docs/README-wsrep
 %license LICENSE.clustercheck
 %{_bindir}/clustercheck
 %{_bindir}/galera_new_cluster
@@ -1699,6 +1698,8 @@ fi
 %endif
 %{_bindir}/{mysql_client_test,mysqltest,mariadb-client-test,mariadb-test}
 %{_bindir}/my_safe_process
+%dir %{_libdir}/%{pkg_name}/plugin
+%dir %{_libdir}/%{pkg_name}/plugin/test_pam_modules/
 %attr(-,mysql,mysql) %{_datadir}/mysql-test
 %{_mandir}/man1/{mysql_client_test,mysqltest,mariadb-client-test,mariadb-test}.1*
 %{_mandir}/man1/my_safe_process.1*
@@ -1707,6 +1708,15 @@ fi
 %endif
 
 %changelog
+* Wed Jun 03 2026 Pavol Sloboda <psloboda@redhat.com> - 3:10.11.18-1
+- Rebase to 10.11.18
+
+* Tue May 26 2026 Pavol Sloboda <psloboda@redhat.com> - 3:10.11.17-1
+- Rebase to 10.11.17
+
+* Tue Feb 10 2026 Michal Schorm <mschorm@redhat.com> - 3:10.11.16-1
+- Rebase to 10.11.16
+
 * Mon Feb 09 2026 Petr Khartskhaev <pkhartsk@redhat.com> - 3:10.11.15-1
 - Rebase to 10.11.15
 - Resolves: RHBZ#2417697
