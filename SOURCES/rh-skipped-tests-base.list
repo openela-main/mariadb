@@ -74,3 +74,9 @@ innodb.log_file_name                         :
 # Related: RHEL-130723
 main.ssl_cipher                              :
 
+# Fails since 10.11.17
+main.chained_ssl_certificates                :
+
+# Fails since 10.11.18
+main.chained_ssl_certificates               :
+main.ssl_cipher                             :
